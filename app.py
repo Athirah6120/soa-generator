@@ -6,6 +6,8 @@ import streamlit as st
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
+from reportlab.platypus import Table, TableStyle
+from reportlab.lib import colors
 
 st.title("SOA Mass Generator - Australia")
 
@@ -44,71 +46,74 @@ if uploaded:
                 c = canvas.Canvas(pdf_buffer, pagesize=A4)
                 width, height = A4
 
-                y = height - 30*mm
-
+                # ===== HEADER =====
                 c.setFont("Helvetica-Bold", 16)
-                c.drawCentredString(width/2, y, "STATEMENT OF ACCOUNT")
-                y -= 20
+                c.drawCentredString(width/2, height-40, "STATEMENT OF ACCOUNT")
 
                 c.setFont("Helvetica", 11)
-                c.drawString(20*mm, y, "To:")
-                y -= 15
-                c.drawString(20*mm, y, str(merchant))
+                c.drawString(20*mm, height-70, "To:")
+                c.drawString(20*mm, height-85, str(merchant))
 
-                c.drawRightString(width-20*mm, height-40,
+                c.drawRightString(width-20*mm, height-70,
                                   f"Statement as at {statement_as_at.strftime('%d-%b-%Y')}")
-                c.drawRightString(width-20*mm, height-55,
+                c.drawRightString(width-20*mm, height-85,
                                   f"Subsidiary {subsidiary}")
 
-                y -= 30
-
-                c.setFont("Helvetica-Bold", 10)
+                # ===== TABLE DATA =====
+                table_data = []
                 headers = ["Date","Doc Number","Type",
                            "Original","Payment","Document","Accumulated"]
-                x_positions = [20, 80, 150, 240, 310, 380, 450]
+                table_data.append(headers)
 
-                for i,h in enumerate(headers):
-                    c.drawString(x_positions[i], y, h)
-
-                y -= 15
-                c.setFont("Helvetica", 9)
-
-                for _,row in m_df.iterrows():
-
-                    values = [
-                        row.get(date_col,""),
-                        row.get(doc_col,""),
-                        row.get(type_col,""),
-                        row.get(original_col,""),
-                        row.get(payment_col,""),
-                        row.get(document_col,""),
-                        row.get(acc_col,"")
+                for _, row in m_df.iterrows():
+                    row_data = [
+                        "" if pd.isna(row.get(date_col)) else str(row.get(date_col)),
+                        "" if pd.isna(row.get(doc_col)) else str(row.get(doc_col)),
+                        "" if pd.isna(row.get(type_col)) else str(row.get(type_col)),
+                        "" if pd.isna(row.get(original_col)) else f"{float(row.get(original_col)):,.2f}",
+                        "" if pd.isna(row.get(payment_col)) else f"{float(row.get(payment_col)):,.2f}",
+                        "" if pd.isna(row.get(document_col)) else f"{float(row.get(document_col)):,.2f}",
+                        "" if pd.isna(row.get(acc_col)) else f"{float(row.get(acc_col)):,.2f}",
                     ]
+                    table_data.append(row_data)
 
-                    for i,v in enumerate(values):
-                        text = "" if pd.isna(v) else str(v)
-                        c.drawString(x_positions[i], y, text)
+                table = Table(table_data, repeatRows=1)
 
-                    y -= 15
-                    if y < 80:
-                        c.showPage()
-                        y = height - 40
+                table.setStyle(TableStyle([
+                    ('BACKGROUND',(0,0),(-1,0),colors.lightgrey),
+                    ('GRID',(0,0),(-1,-1),0.5,colors.black),  # GRID ADDED
+                    ('FONTNAME',(0,0),(-1,-1),'Helvetica'),
+                    ('FONTSIZE',(0,0),(-1,-1),9),
+                    ('ALIGN',(3,1),(-1,-1),'CENTER'),  # AMOUNT CENTERED
+                    ('VALIGN',(0,0),(-1,-1),'MIDDLE'),
+                    ('LEFTPADDING',(0,0),(-1,-1),4),
+                    ('RIGHTPADDING',(0,0),(-1,-1),4),
+                    ('TOPPADDING',(0,0),(-1,-1),6),
+                    ('BOTTOMPADDING',(0,0),(-1,-1),6),
+                ]))
 
+                table_width, table_height = table.wrap(0,0)
+                table.drawOn(c, 20*mm, height-140-table_height)
+
+                # ===== NET AMOUNT =====
                 acc_num = pd.to_numeric(m_df[acc_col], errors="coerce")
                 if acc_num.notna().any():
                     net_due = acc_num.dropna().iloc[-1]
                 else:
                     net_due = 0
 
-                y -= 20
+                net_y = height-160-table_height  # EXTRA SPACE BELOW TABLE
                 c.setFont("Helvetica-Bold", 11)
-                c.drawString(20*mm, y, "NET AMOUNT DUE FROM YOU (AUD)")
-                c.drawRightString(width-20*mm, y, f"{net_due:,.2f}")
+                c.drawString(20*mm, net_y, "NET AMOUNT DUE FROM YOU (AUD)")
+                c.drawRightString(width-20*mm, net_y, f"{net_due:,.2f}")
 
-                y -= 30
+                # ===== PAYMENT DETAILS =====
+                pay_y = net_y - 50  # MORE SPACE BELOW NET AMOUNT
+
                 c.setFont("Helvetica", 10)
-                c.drawString(20*mm, y, "Payment should be made to the following details:")
-                y -= 15
+                c.drawString(20*mm, pay_y,
+                             "Payment should be made to the following details:")
+                pay_y -= 20
 
                 payment_details = [
                     "Bank Name : ANZ Banking Group Limited",
@@ -120,8 +125,8 @@ if uploaded:
                 ]
 
                 for line in payment_details:
-                    c.drawString(20*mm, y, line)
-                    y -= 15
+                    c.drawString(20*mm, pay_y, line)
+                    pay_y -= 15
 
                 c.save()
                 pdf_buffer.seek(0)
