@@ -225,7 +225,7 @@ if uploaded:
 
                 # ========== TOTAL AUD ==========
                 total_table = Table(
-                    [["TOTAL AUD", fmt_money(net_due)]],
+                    [["TOTAL (AUD)", fmt_money(net_due)]],
                     colWidths=[sum(col_widths[:-1]), col_widths[-1]],
                 )
                 total_table.setStyle(TableStyle([
