@@ -10,12 +10,13 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
 from reportlab.platypus import Table, TableStyle
 from reportlab.lib import colors
+from reportlab.lib.utils import ImageReader
 
 
 st.title("SOA Mass Generator - Australia")
 
 # ===== Defaults =====
-statement_as_at = st.date_input("Statement as at", value=date(2026, 1, 31))
+statement_as_at = st.date_input("Statement as at", value=date(2026, 1, 30))
 subsidiary = "ShopBack Australia Pty Ltd"
 
 uploaded = st.file_uploader("Upload CSV", type=["csv"])
@@ -27,7 +28,6 @@ if uploaded:
 
     # ===== Column Mapping =====
     merchant_col = st.selectbox("Merchant Column", df.columns)
-
     date_col = st.selectbox("Date Column", df.columns)
     doc_col = st.selectbox("Doc Number Column", df.columns)
     type_col = st.selectbox("Type Column", df.columns)
@@ -47,21 +47,28 @@ if uploaded:
                 c = canvas.Canvas(pdf_buffer, pagesize=A4)
                 width, height = A4
 
-                # ========== RED BANNER (TOP LEFT) ==========
-                banner_x = 20 * mm
-                banner_y = height - 30 * mm
-                banner_w = 75 * mm
-                banner_h = 16 * mm
+                # ========== LOGO (TOP LEFT) ==========
+                logo_path = "shopback_logo.png"
 
-                c.setFillColor(colors.HexColor("#E31E24"))
-                c.rect(banner_x, banner_y, banner_w, banner_h, fill=1, stroke=0)
+                logo_x = 20 * mm
+                logo_y = height - 30 * mm
+                logo_h = 14 * mm  # Adjust size if needed
 
-                c.setFillColor(colors.white)
-                c.setFont("Helvetica-Bold", 14)
-                c.drawString(banner_x + 6 * mm, banner_y + 5 * mm, "SHOPBACK")
+                try:
+                    logo = ImageReader(logo_path)
+                    iw, ih = logo.getSize()
+                    logo_w = logo_h * (iw / ih)
 
-                # reset color
-                c.setFillColor(colors.black)
+                    c.drawImage(
+                        logo,
+                        logo_x,
+                        logo_y,
+                        width=logo_w,
+                        height=logo_h,
+                        mask="auto"
+                    )
+                except Exception as e:
+                    st.warning(f"Logo not found or cannot load: {e}")
 
                 # ========== TITLE ==========
                 c.setFont("Helvetica-Bold", 16)
@@ -127,7 +134,7 @@ if uploaded:
                     ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                     ("TOPPADDING", (0, 0), (-1, -1), 6),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-                    ("ALIGN", (3, 1), (-1, -1), "CENTER"),  # numbers centered
+                    ("ALIGN", (3, 1), (-1, -1), "CENTER"),
                     ("ALIGN", (0, 0), (2, -1), "LEFT"),
                 ]))
 
@@ -137,7 +144,7 @@ if uploaded:
                 table_y = table_top_y - main_h
                 main_table.drawOn(c, table_x, table_y)
 
-                # ========== NET AMOUNT ROW (TIDY) ==========
+                # ========== NET AMOUNT ==========
                 acc_num = pd.to_numeric(m_df[acc_col], errors="coerce")
                 if acc_num.notna().any():
                     net_due = float(acc_num.dropna().iloc[-1])
@@ -148,6 +155,7 @@ if uploaded:
                     [["NET AMOUNT DUE FROM YOU (AUD)", f"{net_due:,.2f}"]],
                     colWidths=[(22+28+45+20+20+22)*mm, 25*mm],
                 )
+
                 net_table.setStyle(TableStyle([
                     ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
                     ("FONTSIZE", (0, 0), (-1, -1), 11),
@@ -161,8 +169,8 @@ if uploaded:
                 net_y = table_y - 8 * mm - net_h
                 net_table.drawOn(c, table_x, net_y)
 
-                # ========== PAYMENT DETAILS (7cm GAP) ==========
-                pay_start_y = net_y - 70 * mm  # 7cm gap
+                # ========== PAYMENT DETAILS ==========
+                pay_start_y = net_y - 70 * mm
 
                 c.setFont("Helvetica", 10)
                 c.drawString(20 * mm, pay_start_y, "Payment should be made to the following details:")
