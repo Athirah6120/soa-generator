@@ -36,7 +36,9 @@ if uploaded:
     external_doc_col = st.selectbox("External Doc No. Column", df.columns)
 
     original_col = st.selectbox("Original Amount Column", df.columns)
-    payment_col = st.selectbox("Payment Amount Column", df.columns)
+
+    # CHANGED: label only (still maps into same variable / same logic)
+    payment_col = st.selectbox("Applied Amount Column", df.columns)
 
     if st.button("Generate ZIP"):
         zip_buffer = io.BytesIO()
@@ -69,12 +71,12 @@ if uploaded:
 
         def compute_balances(m_df: pd.DataFrame) -> pd.DataFrame:
             """
-            Document Amount = Original Amount - Payment Amount
+            Document Amount = Original Amount - Applied Amount
             Accumulated Balance = running sum of Document Amount
             """
             m_df = m_df.copy()
             m_df["_original"] = to_num(m_df[original_col])
-            m_df["_payment"] = to_num(m_df[payment_col])
+            m_df["_payment"] = to_num(m_df[payment_col])  # still stored as _payment internally
             m_df["_document_amt"] = m_df["_original"] - m_df["_payment"]
 
             try:
@@ -252,9 +254,9 @@ if uploaded:
                 table_header = [
                     "Date",
                     "Document No.",
-                    "External Doc No.",   # <-- renamed from Type
+                    "External Doc No.",
                     "Original\nAmount",
-                    "Payment\nAmount",
+                    "Applied\nAmount",      # <-- CHANGED from Payment Amount
                     "Document\nAmount",
                     "Accumulated\nBalance",
                 ]
@@ -264,7 +266,7 @@ if uploaded:
                     table_rows.append([
                         p(fmt_text(row.get(date_col))),
                         p(fmt_text(row.get(doc_col))),
-                        p(fmt_text(row.get(external_doc_col))),  # <-- mapped to external doc column
+                        p(fmt_text(row.get(external_doc_col))),
                         fmt_money(row.get("_original")),
                         fmt_money(row.get("_payment")),
                         fmt_money(row.get("_document_amt")),
@@ -277,7 +279,7 @@ if uploaded:
                     36 * mm,  # Document No.
                     40 * mm,  # External Doc No.
                     21 * mm,  # Original Amount
-                    21 * mm,  # Payment Amount
+                    21 * mm,  # Applied Amount (same width)
                     21 * mm,  # Document Amount
                     24 * mm,  # Accumulated Balance
                 ]
