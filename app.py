@@ -18,7 +18,16 @@ st.title("SOA Mass Generator - Australia")
 
 # ===== Defaults =====
 statement_as_at = st.date_input("Statement as at", value=date(2026, 1, 30))
-subsidiary = "ShopBack Australia Pty Ltd"
+
+# CHANGED: Subsidiary selector (no need in upload file)
+subsidiary = st.selectbox(
+    "Subsidiary",
+    [
+        "ShopBack Australia Pty Ltd",
+        "ShopBack FS Malaysia Sdn. Bhd.",
+    ],
+    index=0,
+)
 
 uploaded = st.file_uploader("Upload CSV", type=["csv"])
 
@@ -37,7 +46,7 @@ if uploaded:
 
     original_col = st.selectbox("Original Amount Column", df.columns)
 
-    # CHANGED: label only (still maps into same variable / same logic)
+    # Label only (still maps into same variable / same logic)
     payment_col = st.selectbox("Applied Amount Column", df.columns)
 
     if st.button("Generate ZIP"):
@@ -58,7 +67,7 @@ if uploaded:
                 return ""
             try:
                 return f"{float(val):,.2f}"
-            except:
+            except Exception:
                 return str(val)
 
         def fmt_text(val):
@@ -83,7 +92,7 @@ if uploaded:
                 m_df["_date_sort"] = pd.to_datetime(m_df[date_col], errors="coerce")
                 if m_df["_date_sort"].notna().any():
                     m_df = m_df.sort_values("_date_sort")
-            except:
+            except Exception:
                 pass
 
             m_df["_accumulated"] = m_df["_document_amt"].cumsum()
@@ -91,29 +100,33 @@ if uploaded:
 
         def make_main_table(table_data, col_widths, font_size=8, pad_top=2, pad_bottom=2):
             t = Table(table_data, repeatRows=1, colWidths=col_widths)
-            t.setStyle(TableStyle([
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, 0), font_size),
-                ("ALIGN", (0, 0), (2, 0), "LEFT"),
-                ("ALIGN", (3, 0), (-1, 0), "CENTER"),
-                ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
-                ("LINEBELOW", (0, 0), (-1, 0), 0.7, colors.black),
-                ("TOPPADDING", (0, 0), (-1, 0), 4),
-                ("BOTTOMPADDING", (0, 0), (-1, 0), 4),
+            t.setStyle(
+                TableStyle(
+                    [
+                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                        ("FONTSIZE", (0, 0), (-1, 0), font_size),
+                        ("ALIGN", (0, 0), (2, 0), "LEFT"),
+                        ("ALIGN", (3, 0), (-1, 0), "CENTER"),
+                        ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
+                        ("LINEBELOW", (0, 0), (-1, 0), 0.7, colors.black),
+                        ("TOPPADDING", (0, 0), (-1, 0), 4),
+                        ("BOTTOMPADDING", (0, 0), (-1, 0), 4),
 
-                ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
-                ("FONTSIZE", (0, 1), (-1, -1), font_size),
-                ("VALIGN", (0, 1), (-1, -1), "TOP"),
-                ("ALIGN", (0, 1), (2, -1), "LEFT"),
-                ("ALIGN", (3, 1), (-1, -1), "RIGHT"),
-                ("TOPPADDING", (0, 1), (-1, -1), pad_top),
-                ("BOTTOMPADDING", (0, 1), (-1, -1), pad_bottom),
+                        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                        ("FONTSIZE", (0, 1), (-1, -1), font_size),
+                        ("VALIGN", (0, 1), (-1, -1), "TOP"),
+                        ("ALIGN", (0, 1), (2, -1), "LEFT"),
+                        ("ALIGN", (3, 1), (-1, -1), "RIGHT"),
+                        ("TOPPADDING", (0, 1), (-1, -1), pad_top),
+                        ("BOTTOMPADDING", (0, 1), (-1, -1), pad_bottom),
 
-                ("LINEABOVE", (0, 1), (-1, -1), 0, colors.white),
-                ("LINEBELOW", (0, 1), (-1, -1), 0, colors.white),
-                ("LINEBEFORE", (0, 0), (-1, -1), 0, colors.white),
-                ("LINEAFTER", (0, 0), (-1, -1), 0, colors.white),
-            ]))
+                        ("LINEABOVE", (0, 1), (-1, -1), 0, colors.white),
+                        ("LINEBELOW", (0, 1), (-1, -1), 0, colors.white),
+                        ("LINEBEFORE", (0, 0), (-1, -1), 0, colors.white),
+                        ("LINEAFTER", (0, 0), (-1, -1), 0, colors.white),
+                    ]
+                )
+            )
             return t
 
         def draw_header(c, merchant, left, width, height):
@@ -132,7 +145,7 @@ if uploaded:
                     height=logo_h,
                     mask="auto",
                 )
-            except:
+            except Exception:
                 pass
 
             # Title
@@ -166,16 +179,20 @@ if uploaded:
                 [["TOTAL (AUD)", fmt_money(net_due)]],
                 colWidths=[sum(col_widths[:-1]), col_widths[-1]],
             )
-            total_table.setStyle(TableStyle([
-                ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, -1), 9),
-                ("ALIGN", (0, 0), (0, 0), "RIGHT"),
-                ("ALIGN", (1, 0), (1, 0), "RIGHT"),
-                ("LINEABOVE", (0, 0), (-1, 0), 0.7, colors.black),
-                ("LINEBELOW", (0, 0), (-1, 0), 0.7, colors.black),
-                ("TOPPADDING", (0, 0), (-1, -1), 4),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-            ]))
+            total_table.setStyle(
+                TableStyle(
+                    [
+                        ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 9),
+                        ("ALIGN", (0, 0), (0, 0), "RIGHT"),
+                        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+                        ("LINEABOVE", (0, 0), (-1, 0), 0.7, colors.black),
+                        ("LINEBELOW", (0, 0), (-1, 0), 0.7, colors.black),
+                        ("TOPPADDING", (0, 0), (-1, -1), 4),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                    ]
+                )
+            )
             _, total_h = total_table.wrap(0, 0)
             total_y = total_y_start - 10 * mm - total_h
             total_table.drawOn(c, table_x, total_y)
@@ -185,17 +202,21 @@ if uploaded:
                 [["NET AMOUNTS DUE FROM YOU", "(AUD)", fmt_money(net_due)]],
                 colWidths=[sum(col_widths[:-2]), col_widths[-2], col_widths[-1]],
             )
-            net_table.setStyle(TableStyle([
-                ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, -1), 9),
-                ("ALIGN", (0, 0), (0, 0), "RIGHT"),
-                ("ALIGN", (1, 0), (1, 0), "CENTER"),
-                ("ALIGN", (2, 0), (2, 0), "RIGHT"),
-                ("LINEABOVE", (0, 0), (-1, 0), 0.7, colors.black),
-                ("LINEBELOW", (0, 0), (-1, 0), 0.7, colors.black),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-            ]))
+            net_table.setStyle(
+                TableStyle(
+                    [
+                        ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 9),
+                        ("ALIGN", (0, 0), (0, 0), "RIGHT"),
+                        ("ALIGN", (1, 0), (1, 0), "CENTER"),
+                        ("ALIGN", (2, 0), (2, 0), "RIGHT"),
+                        ("LINEABOVE", (0, 0), (-1, 0), 0.7, colors.black),
+                        ("LINEBELOW", (0, 0), (-1, 0), 0.7, colors.black),
+                        ("TOPPADDING", (0, 0), (-1, -1), 6),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                    ]
+                )
+            )
             _, net_h = net_table.wrap(0, 0)
             net_y = total_y - 10 * mm - net_h
             net_table.drawOn(c, table_x, net_y)
@@ -230,7 +251,11 @@ if uploaded:
                 m_df = df[df[merchant_col] == merchant].copy()
                 m_df = compute_balances(m_df)
 
-                net_due = float(m_df["_accumulated"].dropna().iloc[-1]) if len(m_df) and m_df["_accumulated"].notna().any() else 0.0
+                net_due = (
+                    float(m_df["_accumulated"].dropna().iloc[-1])
+                    if len(m_df) and m_df["_accumulated"].notna().any()
+                    else 0.0
+                )
 
                 pdf_buffer = io.BytesIO()
                 c = canvas.Canvas(pdf_buffer, pagesize=A4)
@@ -256,22 +281,24 @@ if uploaded:
                     "Document No.",
                     "External Doc No.",
                     "Original\nAmount",
-                    "Applied\nAmount",      # <-- CHANGED from Payment Amount
+                    "Applied\nAmount",
                     "Document\nAmount",
                     "Accumulated\nBalance",
                 ]
 
                 table_rows = []
                 for _, row in m_df.iterrows():
-                    table_rows.append([
-                        p(fmt_text(row.get(date_col))),
-                        p(fmt_text(row.get(doc_col))),
-                        p(fmt_text(row.get(external_doc_col))),
-                        fmt_money(row.get("_original")),
-                        fmt_money(row.get("_payment")),
-                        fmt_money(row.get("_document_amt")),
-                        fmt_money(row.get("_accumulated")),
-                    ])
+                    table_rows.append(
+                        [
+                            p(fmt_text(row.get(date_col))),
+                            p(fmt_text(row.get(doc_col))),
+                            p(fmt_text(row.get(external_doc_col))),
+                            fmt_money(row.get("_original")),
+                            fmt_money(row.get("_payment")),
+                            fmt_money(row.get("_document_amt")),
+                            fmt_money(row.get("_accumulated")),
+                        ]
+                    )
 
                 # widths (slightly adjusted for longer header)
                 col_widths = [
@@ -279,7 +306,7 @@ if uploaded:
                     36 * mm,  # Document No.
                     40 * mm,  # External Doc No.
                     21 * mm,  # Original Amount
-                    21 * mm,  # Applied Amount (same width)
+                    21 * mm,  # Applied Amount
                     21 * mm,  # Document Amount
                     24 * mm,  # Accumulated Balance
                 ]
@@ -296,18 +323,24 @@ if uploaded:
                 table_data_full = [table_header] + table_rows
 
                 def table_height_for(font_sz, pt, pb, data):
-                    t = make_main_table(data, col_widths, font_size=font_sz, pad_top=pt, pad_bottom=pb)
+                    t = make_main_table(
+                        data, col_widths, font_size=font_sz, pad_top=pt, pad_bottom=pb
+                    )
                     _, h = t.wrap(0, 0)
                     return t, h
 
-                main_table, main_h = table_height_for(font_size, pad_top, pad_bottom, table_data_full)
+                main_table, main_h = table_height_for(
+                    font_size, pad_top, pad_bottom, table_data_full
+                )
 
                 # progressively shrink if needed (still single page attempt)
                 while main_h > table_available_h_first and font_size > 6:
                     font_size -= 1
                     pad_top = max(1, pad_top - 0.5)
                     pad_bottom = max(1, pad_bottom - 0.5)
-                    main_table, main_h = table_height_for(font_size, pad_top, pad_bottom, table_data_full)
+                    main_table, main_h = table_height_for(
+                        font_size, pad_top, pad_bottom, table_data_full
+                    )
 
                 if main_h <= table_available_h_first:
                     # draw table on first page + totals/payment
@@ -363,7 +396,9 @@ if uploaded:
 
                         while idx < len(remaining):
                             candidate = page_data + [remaining[idx]]
-                            t, h = table_height_for(font_size, pad_top, pad_bottom, candidate)
+                            t, h = table_height_for(
+                                font_size, pad_top, pad_bottom, candidate
+                            )
                             if h <= avail_h:
                                 page_data = candidate
                                 best_table = t
@@ -374,7 +409,12 @@ if uploaded:
 
                         # Safety: if even 1 row doesn't fit, force it (shouldn't happen in normal cases)
                         if best_table is None:
-                            best_table, best_h = table_height_for(font_size, pad_top, pad_bottom, [table_header] + [remaining[0]])
+                            best_table, best_h = table_height_for(
+                                font_size,
+                                pad_top,
+                                pad_bottom,
+                                [table_header] + [remaining[0]],
+                            )
                             idx = 1
 
                         table_y = top - best_h
