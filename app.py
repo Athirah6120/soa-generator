@@ -19,7 +19,6 @@ st.title("SOA Mass Generator - Australia")
 # ===== Defaults =====
 statement_as_at = st.date_input("Statement as at", value=date(2026, 1, 30))
 
-# CHANGED: Subsidiary selector (no need in upload file)
 subsidiary = st.selectbox(
     "Subsidiary",
     [
@@ -28,6 +27,29 @@ subsidiary = st.selectbox(
     ],
     index=0,
 )
+
+# ✅ NEW: Currency selector (Option 1/2)
+currency = st.selectbox("Currency", ["AUD", "MYR"], index=0)
+
+# ✅ NEW: Bank details profiles (AUD vs MYR)
+BANK_PROFILES = {
+    "AUD": {
+        "Bank Name": "ANZ Banking Group Limited",
+        "Account Name": "ShopBack Australia Pty Ltd",
+        "Account Number": "012010 307004743",
+        "SWIFT Code": "ANZBAU3M",
+        "Branch Code": "",
+        "Currency": "AUD",
+    },
+    "MYR": {
+        "Bank Name": "UOB-MYR",
+        "Account Name": "ShopBack FS Malaysia Sdn. Bhd.",
+        "Account Number": "2093041048",
+        "SWIFT Code": "UOVBMYKLXXX",
+        "Branch Code": "",
+        "Currency": "MYR",
+    },
+}
 
 uploaded = st.file_uploader("Upload CSV", type=["csv"])
 
@@ -170,13 +192,18 @@ if uploaded:
             c.drawString(label_x, row2_y, "Subsidiary")
             c.drawString(value_x, row2_y, subsidiary)
 
+            # ✅ NEW: Currency line (optional, but helpful)
+            row3_y = height - 80 * mm
+            c.drawString(label_x, row3_y, "Currency")
+            c.drawString(value_x, row3_y, currency)
+
             # return y where table should start (top y)
-            return height - 90 * mm
+            return height - 95 * mm
 
         def draw_totals_and_payment(c, left, table_x, col_widths, total_y_start, net_due):
             # TOTAL
             total_table = Table(
-                [["TOTAL (AUD)", fmt_money(net_due)]],
+                [[f"TOTAL ({currency})", fmt_money(net_due)]],
                 colWidths=[sum(col_widths[:-1]), col_widths[-1]],
             )
             total_table.setStyle(
@@ -199,7 +226,7 @@ if uploaded:
 
             # NET DUE
             net_table = Table(
-                [["NET AMOUNTS DUE FROM YOU", "(AUD)", fmt_money(net_due)]],
+                [["NET AMOUNTS DUE FROM YOU", f"({currency})", fmt_money(net_due)]],
                 colWidths=[sum(col_widths[:-2]), col_widths[-2], col_widths[-1]],
             )
             net_table.setStyle(
@@ -230,15 +257,19 @@ if uploaded:
             colon_x = left + 42 * mm
             value_x2 = left + 46 * mm
 
-            pay_y = pay_start_y - 12 * mm
+            # ✅ pick correct bank details based on selected currency
+            pay = BANK_PROFILES.get(currency, BANK_PROFILES["AUD"])
+
             payment_rows = [
-                ("Bank Name", "ANZ Banking Group Limited"),
-                ("Account Name", "ShopBack Australia Pty Ltd"),
-                ("Account Number", "012010 307004743"),
-                ("SWIFT Code", "ANZBAU3M"),
-                ("Branch Code", ""),
-                ("Currency", "AUD"),
+                ("Bank Name", pay["Bank Name"]),
+                ("Account Name", pay["Account Name"]),
+                ("Account Number", pay["Account Number"]),
+                ("SWIFT Code", pay["SWIFT Code"]),
+                ("Branch Code", pay["Branch Code"]),
+                ("Currency", pay["Currency"]),
             ]
+
+            pay_y = pay_start_y - 12 * mm
             line_gap = 6 * mm
             for label, value in payment_rows:
                 c.drawString(label_x2, pay_y, label)
